@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-class EquipeCurseurLapin : Form
+class EquipeCurseurPied : Form
 {
     const uint SPI_SETCURSORS = 0x0057;
     const uint SPIF_SENDCHANGE = 0x0002;
@@ -24,7 +24,7 @@ class EquipeCurseurLapin : Form
 
     string baseDir;
     Dictionary<string, string> originals = new Dictionary<string, string>();
-    Dictionary<string, string> bunny = new Dictionary<string, string>();
+    Dictionary<string, string> pieds = new Dictionary<string, string>();
     Label status;
     Button sizeButton;
     Timer cycle;
@@ -34,13 +34,14 @@ class EquipeCurseurLapin : Form
     static void Main()
     {
         Application.EnableVisualStyles();
-        Application.Run(new EquipeCurseurLapin());
+        Application.Run(new EquipeCurseurPied());
     }
 
-    EquipeCurseurLapin()
+    EquipeCurseurPied()
     {
         baseDir = AppDomain.CurrentDomain.BaseDirectory;
         string curDir = Path.Combine(baseDir, "curseurs");
+        try { Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
         string[] names = { "", "Arrow", "AppStarting", "Crosshair", "Hand", "Help", "IBeam",
                            "No", "NWPen", "SizeAll", "SizeNESW", "SizeNS", "SizeNWSE",
@@ -63,7 +64,7 @@ class EquipeCurseurLapin : Form
                     string name = names[i];
                     string value = key.GetValue(name) as string;
                     if (String.IsNullOrEmpty(value) ||
-                        value.IndexOf("CurseurLapin", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        value.IndexOf("CurseurPied", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         value.IndexOf("curseurs", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         if (!String.IsNullOrEmpty(value) || String.IsNullOrEmpty(defaults[i]))
@@ -71,7 +72,7 @@ class EquipeCurseurLapin : Form
                                 Environment.ExpandEnvironmentVariables(@"%SystemRoot%\Cursors\" + defaults[i]);
                     }
                     originals[name] = value;
-                    bunny[name] = Path.Combine(curDir, files[i]);
+                    pieds[name] = Path.Combine(curDir, files[i]);
                     key.DeleteValue("(Default)", false);
                 }
             }
@@ -81,7 +82,7 @@ class EquipeCurseurLapin : Form
             Log("Init registre: " + ex.Message);
         }
 
-        Text = "Equipe-Curseur Lapin (tous les curseurs)";
+        Text = "Equipe-Curseur Pied (tous les curseurs)";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
@@ -104,13 +105,13 @@ class EquipeCurseurLapin : Form
         restore.Click += (s, e) => { StopCycle(); ApplyAll(false); };
         Controls.Add(restore);
 
-        Button cycleButton = MakeButton("Cycle automatique 5 s (lapin / Windows)", 16, 124);
+        Button cycleButton = MakeButton("Cycle automatique 5 s (pieds / Windows)", 16, 124);
         cycleButton.Click += (s, e) => ToggleCycle();
         Controls.Add(cycleButton);
 
-        Button furry = MakeButton("Appliquer le curseur PIEDS principal", 16, 162);
-        furry.Click += (s, e) => ApplyFurry();
-        Controls.Add(furry);
+        Button principal = MakeButton("Appliquer le curseur PIEDS principal", 16, 162);
+        principal.Click += (s, e) => ApplyPrincipal();
+        Controls.Add(principal);
 
         sizeButton = MakeButton("Taille Windows : 48 px (cliquer pour changer)", 16, 200);
         sizeButton.Click += (s, e) => CycleCursorSize();
@@ -120,15 +121,15 @@ class EquipeCurseurLapin : Form
         startup.Text = "Lancer avec Windows";
         startup.SetBounds(16, 241, 180, 22);
         using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RUN_KEY))
-            startup.Checked = key.GetValue("EquipeCurseurLapin") != null;
+            startup.Checked = key.GetValue("EquipeCurseurPied") != null;
         startup.CheckedChanged += (s, e) =>
         {
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RUN_KEY, true))
             {
                 if (startup.Checked)
-                    key.SetValue("EquipeCurseurLapin", "\"" + Application.ExecutablePath + "\"");
+                    key.SetValue("EquipeCurseurPied", "\"" + Application.ExecutablePath + "\"");
                 else
-                    key.DeleteValue("EquipeCurseurLapin", false);
+                    key.DeleteValue("EquipeCurseurPied", false);
             }
         };
         Controls.Add(startup);
@@ -206,9 +207,9 @@ class EquipeCurseurLapin : Form
         catch { }
     }
 
-    void ApplyAll(bool useBunny)
+    void ApplyAll(bool usePieds)
     {
-        Dictionary<string, string> source = useBunny ? bunny : originals;
+        Dictionary<string, string> source = usePieds ? pieds : originals;
         int done = 0;
 
         try
@@ -240,18 +241,18 @@ class EquipeCurseurLapin : Form
         }
 
         bool ok = SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, SPIF_SENDCHANGE);
-        status.Text = done + " curseurs " + (useBunny ? "PIEDS" : "Windows");
-        Log("Apply bunny=" + useBunny + " count=" + done + " SPI=" + ok);
+        status.Text = done + " curseurs " + (usePieds ? "PIEDS" : "Windows");
+        Log("Apply pieds=" + usePieds + " count=" + done + " SPI=" + ok);
     }
 
-    void ApplyFurry()
+    void ApplyPrincipal()
     {
         StopCycle();
         string path = Path.Combine(baseDir, "curseurs", "arrow.cur");
         if (!File.Exists(path))
         {
             status.Text = "Curseur introuvable";
-            Log("Furry manquant: " + path);
+            Log("Principal manquant: " + path);
             return;
         }
 
@@ -259,7 +260,7 @@ class EquipeCurseurLapin : Form
         if (handle == IntPtr.Zero)
         {
             status.Text = "Curseur invalide";
-            Log("Furry invalide: " + path);
+            Log("Principal invalide: " + path);
             return;
         }
         DestroyCursor(handle);
@@ -276,7 +277,7 @@ class EquipeCurseurLapin : Form
         catch (Exception ex)
         {
             status.Text = "Erreur registre";
-            Log("Furry registre: " + ex.Message);
+            Log("Principal registre: " + ex.Message);
             return;
         }
 
@@ -308,3 +309,4 @@ class EquipeCurseurLapin : Form
         base.OnFormClosing(e);
     }
 }
+
