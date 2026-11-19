@@ -1,0 +1,53 @@
+Curseurs PIEDS chair (Grok) - 144x144 (150% de 96x96) - point chaud selon l'action
+
+PROGRAMME : EquipeCurseurLapin.exe
+Double-clique dessus, puis choisis :
+- Appliquer TOUS les curseurs PIEDS
+- Restaurer TOUS les curseurs Windows
+- Cycle automatique 5 s (PIEDS / Windows)
+- Appliquer le curseur PIEDS principal
+- Taille Windows : 48 px (cliquer pour changer) -> cycle 32 / 48 / 64 / 96 / 128 px
+- Lancer avec Windows (case a cocher)
+
+IMPORTANT : la taille VISUELLE depend du reglage Windows
+HKCU\Control Panel\Cursors\CursorBaseSize (valeur par defaut 32 px).
+Agrandir les fichiers .cur ne suffit pas : Windows les redimensionne a cette
+valeur. Le bouton "Taille Windows" change directement ce reglage (actuellement 80 px).
+Code source : EquipeCurseurLapin.cs
+
+Image source : 5x3-grid-of-15.jpg (grille 5 colonnes x 3 lignes generatee par Grok).
+Le fond damier gris/blanc a ete converti en transparence, puis les 15 cases
+ont ete extraites en conservant leurs couleurs chair d'origine (rose clair),
+puis agrandies a 150% (64 -> 96 -> 144) pour donner des curseurs Windows 144x144.
+
+Les 15 curseurs sont dans le dossier curseurs/ (ordre de lecture de la grille) :
+  1 arrow.cur         Selection normale      <- image keep-the-exact-same.jpg
+  2 appstarting.ani   Demarrage (anime, 4 images) <- keep-the-exact-same.jpg
+  3 crosshair.cur     Precision
+  4 hand.cur          Selection de lien      <- image keep-the-exact-same.jpg
+  5 help.cur          Aide
+  6 ibeam.cur         Texte (stylo tenu par un pied, point chaud a la pointe) <- single-custom-mouse-cursor.jpg
+  7 no.cur            Interdit
+  8 nwpen.cur         Stylo
+  9 sizeall.cur       Deplacement 4 directions <- image keep-the-exact-same.jpg
+ 10 sizenesw.cur      Redimension diagonale NE-SO
+ 11 sizens.cur        Redimension vertical
+ 12 sizenwse.cur      Redimension diagonale NO-SE
+ 13 sizewe.cur        Redimension horizontal
+ 14 uparrow.cur       Fleche haut
+ 15 wait.ani          Attente (anime, 4 images)
+Les apercus PNG sont dans curseurs/previews/ (arrow.png ... wait.png).
+grok_grid_alpha.png est la grille complete apres extraction du fond.
+
+4 curseurs (Selection normale, Traitement en arriere-plan en cours, Deplacer,
+Selection de lien) utilisent l'image keep-the-exact-same.jpg : meme stylo tenu
+par un pied que le curseur Texte, couleurs chair d'origine (237,212,201),
+144x144, point chaud designe par l'utilisateur : image source
+keep-the-exact-same.jpg, point (162,219) -> hotspot (28,5) (gros orteil).
+
+Le curseur TEXTE (ibeam.cur) utilise l'image
+Gemini_Generated_Image_sejxepsejxepsejx.jpg, point choisi par l'utilisateur
+(159,1110) -> hotspot (33,138), couleurs chair (216,190,179).
+
+Le curseur furry.cur (ancien rendu local) reste disponible pour compatibilite.
+curseur.log contient l'historique des applications (diagnostic).

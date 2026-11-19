@@ -1,0 +1,13 @@
+# Logs de diagnostic générés par le lanceur
+*.log
+
+# Fichiers temporaires de génération d'images
+_*_base.png
+*_0.png
+*_1.png
+*_2.png
+*_3.png
+
+# Fichiers système Windows
+Thumbs.db
+desktop.ini
