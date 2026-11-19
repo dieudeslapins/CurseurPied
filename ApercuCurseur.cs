@@ -59,6 +59,7 @@ class ApercuCurseur : Form
         items.Add(new Item { Label = "Redim. horizontal", Resource = "sizewe.cur" });
         items.Add(new Item { Label = "Fleche haut", Resource = "uparrow.cur" });
         items.Add(new Item { Label = "Occupee (wait)", Resource = "wait.ani" });
+        items.Add(new Item { Label = "GIF attente sans jambes (30 images)", Resource = "attente_sans_jambes.gif" });
 
         Text = "Apercu des curseurs PIED";
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -178,6 +179,29 @@ class ApercuCurseur : Form
         List<Frame> result = new List<Frame>();
         if (d.Length < 4) return result;
 
+        if (d[0] == (byte)'G' && d[1] == (byte)'I' && d[2] == (byte)'F')
+        {
+            using (MemoryStream ms = new MemoryStream(d))
+            using (Image im = Image.FromStream(ms))
+            {
+                System.Drawing.Imaging.FrameDimension dim =
+                    new System.Drawing.Imaging.FrameDimension(im.FrameDimensionsList[0]);
+                int cnt = im.GetFrameCount(dim);
+                for (int i = 0; i < cnt; i++)
+                {
+                    im.SelectActiveFrame(dim, i);
+                    Bitmap bm = new Bitmap(im);
+                    Frame fr = new Frame();
+                    fr.Img = bm;
+                    fr.Hx = bm.Width / 2;
+                    fr.Hy = bm.Height / 2;
+                    fr.Rate = 100;
+                    result.Add(fr);
+                }
+            }
+            return result;
+        }
+
         if (d[0] == (byte)'R' && d[1] == (byte)'I' && d[2] == (byte)'F' && d[3] == (byte)'F')
         {
             int rate = 100;
@@ -190,7 +214,12 @@ class ApercuCurseur : Form
                 int data = pos + 8;
                 if (data + size > d.Length) break;
 
-                if (id == "anih" && size >= 32) rate = U32(d, data + 28);
+                if (id == "anih" && size >= 32)
+                {
+                    int jiffies = U32(d, data + 28);
+                    rate = (int)Math.Round(jiffies * 1000.0 / 60.0);
+                    if (rate < 30) rate = 30;
+                }
                 if (id == "LIST" && size >= 4 &&
                     Encoding.ASCII.GetString(d, data, 4) == "fram")
                 {

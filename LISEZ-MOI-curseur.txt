@@ -17,7 +17,10 @@ Code source : EquipeCurseurPied.cs
 Icone : EquipeCurseurPied.ico (7 tailles, de 16 a 256 px)
 
 APERCU PORTABLE : ApercuCurseur.exe
-- choisir un etat de curseur dans la liste, apercu anime et zoom
+- choisir un etat de curseur dans la liste (15 curseurs + entree "GIF attente
+  sans jambes (30 images)"), apercu anime et zoom
+- le GIF nettoye est integre dans l'EXE et s'anime dans l'apercu ; la vitesse
+  des animations .ani est convertie correctement (jiffies -> ms)
 - cliquer sur l'image pour placer le point chaud (hit box du clic)
 - bouton "Reset point chaud" pour revenir au reglage d'origine
 - case "Voir aussi comme vrai curseur" : le curseur de la souris utilise alors
@@ -57,11 +60,12 @@ par l'utilisateur : image source keep-the-exact-same.jpg, point (162,219)
 
 Les curseurs ANIMES (appstarting.ani = traitement en arriere-plan, wait.ani =
 occupe) utilisent le GIF "Sans titre.gif" (30 frames, 360x640). Seule la zone
-des pieds est gardee (y=170 a 515) : les jambes en bas du GIF sont supprimees.
+des pieds est gardee : decoupe finale x=25..335, y=170..340, juste avant la
+separation des jambes (vers y=345). Les jambes sont donc supprimees.
 Le fichier attente_sans_jambes.gif contient le GIF source nettoye (30 frames,
-fond transparent, sans jambes).
+meme decoupe, fond transparent, sans jambes) et s'affiche dans ApercuCurseur.exe.
 4 frames sont extraites (0, 10, 20, 29), fond rendu transparent, couleurs chair
-d'origine conservees, hotspot au centre des pieds (74,78).
+d'origine conservees, hotspot au centre des pieds (77,80).
 
 Le curseur TEXTE (ibeam.cur) utilise l'image
 Gemini_Generated_Image_sejxepsejxepsejx.jpg, point choisi par l'utilisateur
