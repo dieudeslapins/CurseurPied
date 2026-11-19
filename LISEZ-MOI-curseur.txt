@@ -16,6 +16,15 @@ valeur. Le bouton "Taille Windows" change directement ce reglage (actuellement 8
 Code source : EquipeCurseurPied.cs
 Icone : EquipeCurseurPied.ico (7 tailles, de 16 a 256 px)
 
+APERCU PORTABLE : ApercuCurseur.exe
+- choisir un etat de curseur dans la liste, apercu anime et zoom
+- cliquer sur l'image pour placer le point chaud (hit box du clic)
+- bouton "Reset point chaud" pour revenir au reglage d'origine
+- case "Voir aussi comme vrai curseur" : le curseur de la souris utilise alors
+  le point chaud choisi
+- aucun fichier ecrit, aucun registre modifie : supprimer l'EXE suffit
+- le curseur "Stylo" (nwpen.cur) est une copie du curseur Texte (ibeam.cur)
+
 Image source : 5x3-grid-of-15.jpg (grille 5 colonnes x 3 lignes generatee par Grok).
 Le fond damier gris/blanc a ete converti en transparence, puis les 15 cases
 ont ete extraites en conservant leurs couleurs chair d'origine (rose clair),
@@ -29,7 +38,7 @@ Les 15 curseurs sont dans le dossier curseurs/ (ordre de lecture de la grille) :
   5 help.cur          Aide
   6 ibeam.cur         Texte (stylo tenu par un pied, point chaud a la pointe) <- Gemini_Generated_Image_sejxepsejxepsejx.jpg
   7 no.cur            Interdit
-  8 nwpen.cur         Stylo
+  8 nwpen.cur         Stylo = Texte (copie de ibeam.cur)
   9 sizeall.cur       Deplacement 4 directions <- image keep-the-exact-same.jpg
  10 sizenesw.cur      Redimension diagonale NE-SO
  11 sizens.cur        Redimension vertical
@@ -48,7 +57,9 @@ par l'utilisateur : image source keep-the-exact-same.jpg, point (162,219)
 
 Les curseurs ANIMES (appstarting.ani = traitement en arriere-plan, wait.ani =
 occupe) utilisent le GIF "Sans titre.gif" (30 frames, 360x640). Seule la zone
-des pieds est gardee (y=170 a 525) : les jambes en bas du GIF sont supprimees.
+des pieds est gardee (y=170 a 515) : les jambes en bas du GIF sont supprimees.
+Le fichier attente_sans_jambes.gif contient le GIF source nettoye (30 frames,
+fond transparent, sans jambes).
 4 frames sont extraites (0, 10, 20, 29), fond rendu transparent, couleurs chair
 d'origine conservees, hotspot au centre des pieds (74,78).
 

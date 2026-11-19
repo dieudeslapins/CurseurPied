@@ -33,6 +33,7 @@ class ApercuCurseur : Form
     List<Item> items = new List<Item>();
     List<Frame> frames = new List<Frame>();
     Dictionary<string, Cursor> realCursors = new Dictionary<string, Cursor>();
+    Dictionary<string, Point> customHotspots = new Dictionary<string, Point>();
     int currentFrame;
 
     static void Main()
@@ -50,7 +51,7 @@ class ApercuCurseur : Form
         items.Add(new Item { Label = "Aide (help)", Resource = "help.cur" });
         items.Add(new Item { Label = "Texte / stylo (ibeam)", Resource = "ibeam.cur" });
         items.Add(new Item { Label = "Interdit (no)", Resource = "no.cur" });
-        items.Add(new Item { Label = "Stylo (nwpen)", Resource = "nwpen.cur" });
+        items.Add(new Item { Label = "Stylo = Texte (nwpen)", Resource = "nwpen.cur" });
         items.Add(new Item { Label = "Deplacement (sizeall)", Resource = "sizeall.cur" });
         items.Add(new Item { Label = "Redim. NE-SO", Resource = "sizenesw.cur" });
         items.Add(new Item { Label = "Redim. vertical", Resource = "sizens.cur" });
@@ -85,6 +86,7 @@ class ApercuCurseur : Form
         preview.BackColor = Color.White;
         preview.BorderStyle = BorderStyle.FixedSingle;
         preview.Paint += Preview_Paint;
+        preview.MouseClick += Preview_MouseClick;
         Controls.Add(preview);
 
         info = new Label();
@@ -103,6 +105,13 @@ class ApercuCurseur : Form
         zoom.Value = 3;
         zoom.ValueChanged += delegate { preview.Invalidate(); };
         Controls.Add(zoom);
+
+        Button reset = new Button();
+        reset.Text = "Reset point chaud";
+        reset.SetBounds(150, 448, 150, 28);
+        reset.FlatStyle = FlatStyle.Flat;
+        reset.Click += Reset_Click;
+        Controls.Add(reset);
 
         realCursor = new CheckBox();
         realCursor.Text = "Voir aussi comme vrai curseur sur la fenetre";
@@ -215,7 +224,11 @@ class ApercuCurseur : Form
     void LoadItem(int index)
     {
         foreach (Frame f in frames) if (f.Img != null) f.Img.Dispose();
-        frames = Parse(Resource(items[index]));
+        Item it = items[index];
+        frames = Parse(Resource(it));
+        Point cp;
+        if (customHotspots.TryGetValue(it.Resource, out cp))
+            foreach (Frame f in frames) { f.Hx = cp.X; f.Hy = cp.Y; }
         currentFrame = 0;
         timer.Stop();
         if (frames.Count > 1)
@@ -223,11 +236,19 @@ class ApercuCurseur : Form
             timer.Interval = frames[0].Rate;
             timer.Start();
         }
-        Item it = items[index];
-        info.Text = it.Resource + "  |  " + frames.Count + " image(s)  |  point chaud "
-            + (frames.Count > 0 ? frames[0].Hx + "," + frames[0].Hy : "?");
+        UpdateInfo();
         preview.Invalidate();
         ApplyRealCursor();
+    }
+
+    void UpdateInfo()
+    {
+        if (list.SelectedIndex < 0) return;
+        Item it = items[list.SelectedIndex];
+        bool custom = customHotspots.ContainsKey(it.Resource);
+        info.Text = it.Resource + "  |  " + frames.Count + " image(s)  |  point chaud "
+            + (frames.Count > 0 ? frames[0].Hx + "," + frames[0].Hy : "?")
+            + (custom ? " ( PERSONNALISE )" : "  - cliquez sur l'image pour le deplacer");
     }
 
     void List_SelectedIndexChanged(object sender, EventArgs e)
@@ -274,6 +295,60 @@ class ApercuCurseur : Form
         }
     }
 
+    void Preview_MouseClick(object sender, MouseEventArgs e)
+    {
+        if (list.SelectedIndex < 0 || frames.Count == 0 || frames[currentFrame].Img == null) return;
+        Frame f = frames[currentFrame];
+        int sc = (int)zoom.Value;
+        int w = f.Img.Width * sc;
+        int h = f.Img.Height * sc;
+        int dx = (preview.Width - w) / 2;
+        int dy = (preview.Height - h) / 2;
+        int hx = (e.X - dx) / sc;
+        int hy = (e.Y - dy) / sc;
+        if (hx < 0) hx = 0;
+        if (hy < 0) hy = 0;
+        if (hx >= f.Img.Width) hx = f.Img.Width - 1;
+        if (hy >= f.Img.Height) hy = f.Img.Height - 1;
+
+        Item it = items[list.SelectedIndex];
+        customHotspots[it.Resource] = new Point(hx, hy);
+        foreach (Frame fr in frames) { fr.Hx = hx; fr.Hy = hy; }
+        UpdateInfo();
+        preview.Invalidate();
+        ApplyRealCursor();
+    }
+
+    void Reset_Click(object sender, EventArgs e)
+    {
+        if (list.SelectedIndex < 0) return;
+        customHotspots.Remove(items[list.SelectedIndex].Resource);
+        LoadItem(list.SelectedIndex);
+    }
+
+    Cursor BuildCursor(Frame f, int hx, int hy)
+    {
+        if (f == null || f.Img == null) return Cursors.Default;
+        try
+        {
+            byte[] png;
+            using (MemoryStream ms = new MemoryStream()) { f.Img.Save(ms, System.Drawing.Imaging.ImageFormat.Png); png = ms.ToArray(); }
+            byte[] cur = new byte[22 + png.Length];
+            cur[2] = 2;
+            cur[4] = 1;
+            cur[6] = 32;
+            cur[7] = 32;
+            cur[10] = (byte)(hx & 255); cur[11] = (byte)(hx >> 8);
+            cur[12] = (byte)(hy & 255); cur[13] = (byte)(hy >> 8);
+            cur[14] = (byte)(png.Length & 255); cur[15] = (byte)((png.Length >> 8) & 255);
+            cur[16] = (byte)((png.Length >> 16) & 255); cur[17] = (byte)((png.Length >> 24) & 255);
+            cur[18] = 22;
+            Array.Copy(png, 0, cur, 22, png.Length);
+            return new Cursor(new MemoryStream(cur));
+        }
+        catch { return Cursors.Default; }
+    }
+
     void ApplyRealCursor()
     {
         if (!realCursor.Checked || list.SelectedIndex < 0)
@@ -283,44 +358,26 @@ class ApercuCurseur : Form
             return;
         }
         Item it = items[list.SelectedIndex];
+        Point cp;
+        bool custom = customHotspots.TryGetValue(it.Resource, out cp);
+        Frame first = frames.Count > 0 ? frames[0] : null;
+        int hx = custom ? cp.X : (first != null ? first.Hx : 16);
+        int hy = custom ? cp.Y : (first != null ? first.Hy : 16);
+        string key = it.Resource + "|" + hx + "," + hy + "|" + (custom ? "custom" : "raw");
+
         Cursor c;
-        if (!realCursors.TryGetValue(it.Resource, out c))
+        if (!realCursors.TryGetValue(key, out c))
         {
-            try
+            if (custom)
             {
-                c = new Cursor(new MemoryStream(Resource(it)));
+                c = BuildCursor(first, hx, hy);
             }
-            catch
+            else
             {
-                try
-                {
-                    Frame f = frames.Count > 0 ? frames[0] : null;
-                    if (f == null || f.Img == null) throw new Exception();
-                    byte[] png;
-                    using (MemoryStream ms = new MemoryStream()) { f.Img.Save(ms, System.Drawing.Imaging.ImageFormat.Png); png = ms.ToArray(); }
-                    byte[] raw = Resource(it);
-                    int hx = f.Hx, hy = f.Hy;
-                    if (raw.Length >= 22 && !(raw[0] == (byte)'R'))
-                    {
-                        hx = raw[10] | (raw[11] << 8);
-                        hy = raw[12] | (raw[13] << 8);
-                    }
-                    byte[] cur = new byte[22 + png.Length];
-                    cur[2] = 2;
-                    cur[4] = 1;
-                    cur[6] = 32;
-                    cur[7] = 32;
-                    cur[10] = (byte)(hx & 255); cur[11] = (byte)(hx >> 8);
-                    cur[12] = (byte)(hy & 255); cur[13] = (byte)(hy >> 8);
-                    cur[14] = (byte)(png.Length & 255); cur[15] = (byte)((png.Length >> 8) & 255);
-                    cur[16] = (byte)((png.Length >> 16) & 255); cur[17] = (byte)((png.Length >> 24) & 255);
-                    cur[18] = 22;
-                    Array.Copy(png, 0, cur, 22, png.Length);
-                    c = new Cursor(new MemoryStream(cur));
-                }
-                catch { c = Cursors.Default; }
+                try { c = new Cursor(new MemoryStream(Resource(it))); }
+                catch { c = BuildCursor(first, hx, hy); }
             }
-            realCursors[it.Resource] = c;
+            realCursors[key] = c;
         }
         Cursor = c;
         preview.Cursor = c;

@@ -20,6 +20,8 @@ Un lanceur Windows pour remplacer les curseurs système par un thème **pied / s
 
 `ApercuCurseur.exe` affiche l'état du curseur choisi : liste des 15 curseurs, aperçu agrandi avec le point chaud, animation pour `appstarting` / `wait`, zoom, et option « voir aussi comme vrai curseur sur la fenêtre ».
 
+- **Choix du hitbox** : cliquez sur l'aperçu pour placer le point chaud (croix rouge), bouton « Reset point chaud » pour revenir au réglage d'origine. Le curseur réel utilise votre choix.
+- **Stylo = Texte** : le curseur `nwpen.cur` est désormais une copie de `ibeam.cur`.
 - **Un seul fichier** : les 15 curseurs sont intégrés dans l'EXE.
 - **Aucune écriture** : ni fichier, ni dossier, ni registre, ni démarrage automatique.
 - **Suppression propre** : supprimez l'EXE, il ne reste rien.
@@ -72,6 +74,7 @@ L'aperçu portable s'compile avec les curseurs intégrés en ressources :
 - `keep-the-exact-same.jpg` — utilisé pour la sélection normale, le lien, le déplacement et l'attente animée
 - `Gemini_Generated_Image_sejxepsejxepsejx.jpg` — utilisé pour le curseur de texte (I-beam)
 - `Sans titre.gif` — utilisé pour les curseurs animés **traitement en arrière-plan** (`appstarting.ani`) et **occupé** (`wait.ani`). Les jambes présentes en bas du GIF ont été supprimées : seuls les pieds sont conservés (4 frames extraites sur 30).
+- `attente_sans_jambes.gif` — version nettoyée du GIF source (30 frames, jambes retirées, fond transparent), fournie dans le dépôt.
 
 Le fond damier des images a été converti en transparence ; les couleurs chair d'origine sont conservées.
 
