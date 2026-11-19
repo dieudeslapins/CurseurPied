@@ -63,7 +63,9 @@ occupe) utilisent le GIF "Sans titre.gif" (30 frames, 360x640). Seule la zone
 des pieds est gardee : decoupe finale x=25..335, y=170..340, juste avant la
 separation des jambes (vers y=345). Les jambes sont donc supprimees.
 Le fichier attente_sans_jambes.gif contient le GIF source nettoye (30 frames,
-meme decoupe, fond transparent, sans jambes) et s'affiche dans ApercuCurseur.exe.
+meme decoupe, fond et jambes transparents, sans jambes) et s'affiche dans
+ApercuCurseur.exe. Le masque garde tout le pied, y compris les bords clairs :
+separation fond/pied sur R-G > 10 (le fond gris a R-G=6, le pied a R-G=47).
 4 frames sont extraites (0, 10, 20, 29), fond rendu transparent, couleurs chair
 d'origine conservees, hotspot au centre des pieds (77,80).
 

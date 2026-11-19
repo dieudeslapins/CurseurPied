@@ -76,7 +76,7 @@ L'aperçu portable s'compile avec les curseurs intégrés en ressources :
 - `keep-the-exact-same.jpg` — utilisé pour la sélection normale, le lien, le déplacement et l'attente animée
 - `Gemini_Generated_Image_sejxepsejxepsejx.jpg` — utilisé pour le curseur de texte (I-beam)
 - `Sans titre.gif` — utilisé pour les curseurs animés **traitement en arrière-plan** (`appstarting.ani`) et **occupé** (`wait.ani`). Les jambes ont été supprimées : découpe finale `x = 25..335`, `y = 170..340`, juste avant la séparation des jambes (4 frames extraites sur 30).
-- `attente_sans_jambes.gif` — version nettoyée du GIF source (30 frames, même découpe, fond transparent), fournie dans le dépôt et **affichable directement dans l'aperçu portable**.
+- `attente_sans_jambes.gif` — version nettoyée du GIF source (30 frames, même découpe, fond et jambes transparents), fournie dans le dépôt et **affichable directement dans l'aperçu portable**. Le masque garde **tout le pied**, y compris les bords clairs (séparation fond/pied sur `R - G > 10`).
 
 Le fond damier des images a été converti en transparence ; les couleurs chair d'origine sont conservées.
 
