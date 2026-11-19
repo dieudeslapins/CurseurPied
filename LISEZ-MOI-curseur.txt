@@ -23,7 +23,7 @@ puis agrandies a 150% (64 -> 96 -> 144) pour donner des curseurs Windows 144x144
 
 Les 15 curseurs sont dans le dossier curseurs/ (ordre de lecture de la grille) :
   1 arrow.cur         Selection normale      <- image keep-the-exact-same.jpg
-  2 appstarting.ani   Demarrage (anime, 4 images) <- keep-the-exact-same.jpg
+  2 appstarting.ani   Traitement en arriere-plan (anime, 4 images) <- Sans titre.gif (pieds sans jambes)
   3 crosshair.cur     Precision
   4 hand.cur          Selection de lien      <- image keep-the-exact-same.jpg
   5 help.cur          Aide
@@ -36,7 +36,7 @@ Les 15 curseurs sont dans le dossier curseurs/ (ordre de lecture de la grille) :
  12 sizenwse.cur      Redimension diagonale NO-SE
  13 sizewe.cur        Redimension horizontal
  14 uparrow.cur       Fleche haut
- 15 wait.ani          Attente (anime, 4 images)
+ 15 wait.ani          Occupe (anime, 4 images) <- Sans titre.gif (pieds sans jambes)
 Les apercus PNG sont dans curseurs/previews/ (arrow.png ... wait.png).
 grok_grid_alpha.png est la grille complete apres extraction du fond.
 
@@ -45,6 +45,12 @@ Selection de lien) utilisent l'image keep-the-exact-same.jpg : meme stylo tenu
 par un pied, couleurs chair d'origine conservees, 144x144, point chaud designe
 par l'utilisateur : image source keep-the-exact-same.jpg, point (162,219)
 -> hotspot (28,5) (gros orteil).
+
+Les curseurs ANIMES (appstarting.ani = traitement en arriere-plan, wait.ani =
+occupe) utilisent le GIF "Sans titre.gif" (30 frames, 360x640). Seule la zone
+des pieds est gardee (y=170 a 525) : les jambes en bas du GIF sont supprimees.
+4 frames sont extraites (0, 10, 20, 29), fond rendu transparent, couleurs chair
+d'origine conservees, hotspot au centre des pieds (74,78).
 
 Le curseur TEXTE (ibeam.cur) utilise l'image
 Gemini_Generated_Image_sejxepsejxepsejx.jpg, point choisi par l'utilisateur

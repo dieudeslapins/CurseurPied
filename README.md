@@ -51,6 +51,7 @@ Le lanceur est compilé avec le compilateur C# fourni avec le .NET Framework (Wi
 - `5x3-grid-of-15.jpg` — grille d'origine (Grok) pour les 15 curseurs PIED
 - `keep-the-exact-same.jpg` — utilisé pour la sélection normale, le lien, le déplacement et l'attente animée
 - `Gemini_Generated_Image_sejxepsejxepsejx.jpg` — utilisé pour le curseur de texte (I-beam)
+- `Sans titre.gif` — utilisé pour les curseurs animés **traitement en arrière-plan** (`appstarting.ani`) et **occupé** (`wait.ani`). Les jambes présentes en bas du GIF ont été supprimées : seuls les pieds sont conservés (4 frames extraites sur 30).
 
 Le fond damier des images a été converti en transparence ; les couleurs chair d'origine sont conservées.
 
