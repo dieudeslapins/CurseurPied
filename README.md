@@ -16,6 +16,14 @@ Un lanceur Windows pour remplacer les curseurs système par un thème **pied / s
   - Lancer au démarrage de Windows (option)
 - Les **points chauds** (hotspots) sont placés sur la partie fonctionnelle de chaque dessin (gros orteil ou pointe du stylo).
 
+## Aperçu portable (nouveau)
+
+`ApercuCurseur.exe` affiche l'état du curseur choisi : liste des 15 curseurs, aperçu agrandi avec le point chaud, animation pour `appstarting` / `wait`, zoom, et option « voir aussi comme vrai curseur sur la fenêtre ».
+
+- **Un seul fichier** : les 15 curseurs sont intégrés dans l'EXE.
+- **Aucune écriture** : ni fichier, ni dossier, ni registre, ni démarrage automatique.
+- **Suppression propre** : supprimez l'EXE, il ne reste rien.
+
 ## Utilisation
 
 1. Double-cliquer sur `EquipeCurseurPied.exe`.
@@ -31,6 +39,7 @@ Un lanceur Windows pour remplacer les curseurs système par un thème **pied / s
 | `EquipeCurseurPied.cs` | Code source du lanceur (C# / WinForms, .NET Framework 4) |
 | `EquipeCurseurPied.exe` | Lanceur compilé, prêt à l'emploi (icône intégrée) |
 | `EquipeCurseurPied.ico` | Icône du lanceur (16 → 256 px, pied chair) |
+| `ApercuCurseur.exe` / `ApercuCurseur.cs` | Aperçu portable des 15 curseurs (aucune écriture disque/registre) |
 | `curseurs/` | Les 13 `.cur` et 2 `.ani` du thème |
 | `curseurs/previews/` | Aperçus PNG de chaque curseur |
 | `LISEZ-MOI-curseur.txt` | Documentation détaillée en français |
@@ -44,6 +53,17 @@ Le lanceur est compilé avec le compilateur C# fourni avec le .NET Framework (Wi
   /nologo /target:winexe /win32icon:EquipeCurseurPied.ico /out:EquipeCurseurPied.exe `
   /r:System.Windows.Forms.dll /r:System.Drawing.dll `
   EquipeCurseurPied.cs
+```
+
+L'aperçu portable s'compile avec les curseurs intégrés en ressources :
+
+```powershell
+& 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe' `
+  /nologo /target:winexe /win32icon:EquipeCurseurPied.ico /out:ApercuCurseur.exe `
+  /r:System.Windows.Forms.dll /r:System.Drawing.dll `
+  /resource:curseurs\arrow.cur,arrow.cur /resource:curseurs\appstarting.ani,appstarting.ani `
+  ... (un /resource par curseur) ...
+  ApercuCurseur.cs
 ```
 
 ## Images sources
