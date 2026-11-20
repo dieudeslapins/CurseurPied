@@ -65,6 +65,7 @@ class EditeurGif : Form
     Label info;
     string currentPath = "";
 
+    [STAThread]
     static void Main()
     {
         Application.EnableVisualStyles();
@@ -77,11 +78,14 @@ class EditeurGif : Form
         ClientSize = new Size(1060, 720);
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9);
+        AllowDrop = true;
+        DragEnter += Files_DragEnter;
+        DragDrop += Files_DragDrop;
         try { Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
         MenuStrip menu = new MenuStrip();
         ToolStripMenuItem fm = new ToolStripMenuItem("Fichier");
-        fm.DropDownItems.Add("Ouvrir un GIF...", null, Ouvrir_Click);
+        fm.DropDownItems.Add("Ouvrir un GIF... (ou glisser le fichier)", null, Ouvrir_Click);
         fm.DropDownItems.Add("Enregistrer le GIF...", null, Enregistrer_Click);
         fm.DropDownItems.Add("Exporter les frames en PNG...", null, ExporterPng_Click);
         fm.DropDownItems.Add("Quitter", null, delegate { Close(); });
@@ -157,6 +161,8 @@ class EditeurGif : Form
         Controls.Add(scroll);
         canvas = new CanvasCtrl();
         canvas.Owner = this;
+        HookDrop(scroll);
+        HookDrop(canvas);
         scroll.Controls.Add(canvas);
 
         info = new Label();
@@ -165,9 +171,37 @@ class EditeurGif : Form
         Controls.Add(info);
 
         UpdateColor();
+
+        // Ouverture par double-clic / "Ouvrir avec" (n'importe quel GIF en argument).
+        string argPath = "";
+        foreach (string a in Environment.GetCommandLineArgs())
+        {
+            if (a != Application.ExecutablePath && File.Exists(a)) { argPath = a; break; }
+        }
+        if (argPath.Length > 0) { LoadGif(argPath); return; }
+
         string p = Path.Combine(Application.StartupPath, "attente_sans_jambes.gif");
         if (!File.Exists(p)) p = @"C:\Users\Eleve\Downloads\Sans titre.gif";
         if (File.Exists(p)) LoadGif(p); else UpdateInfo();
+    }
+
+    void HookDrop(Control c)
+    {
+        c.AllowDrop = true;
+        c.DragEnter += Files_DragEnter;
+        c.DragDrop += Files_DragDrop;
+    }
+
+    void Files_DragEnter(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
+    }
+
+    void Files_DragDrop(object sender, DragEventArgs e)
+    {
+        string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
+        if (files == null || files.Length == 0) return;
+        LoadGif(files[0]);
     }
 
     void AddTool(ToolStrip bar, string label, Tool t)
@@ -199,37 +233,79 @@ class EditeurGif : Form
         canvas.Invalidate();
     }
 
+    void ClearFrames()
+    {
+        foreach (FrameData f in frames) if (f.Bmp != null) f.Bmp.Dispose();
+        frames.Clear();
+        foreach (Dictionary<int, Bitmap> snap in undo)
+            foreach (Bitmap b in snap.Values) b.Dispose();
+        undo.Clear();
+    }
+
     void LoadGif(string path)
     {
+        if (!File.Exists(path)) return;
         List<FrameData> loaded = new List<FrameData>();
-        using (Image img = Image.FromFile(path))
+        try
         {
-            FrameDimension dim = new FrameDimension(img.FrameDimensionsList[0]);
-            int n = img.GetFrameCount(dim);
-            int delay = 100;
-            try
+            // FileStream evite de verrouiller le fichier et accepte tout GIF lisible.
+            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (Image img = Image.FromStream(fs))
             {
-                PropertyItem pi = img.GetPropertyItem(0x5100);
-                if (pi != null && pi.Value != null && pi.Value.Length >= 4)
-                    delay = (int)(BitConverter.ToUInt16(pi.Value, 0) * 10);
-            }
-            catch { }
-            if (delay < 20) delay = 100;
-            for (int i = 0; i < n; i++)
-            {
-                img.SelectActiveFrame(dim, i);
-                loaded.Add(new FrameData { Bmp = new Bitmap(img), Delay = delay });
+                FrameDimension dim = null;
+                int n = 1;
+                foreach (Guid g in img.FrameDimensionsList)
+                {
+                    FrameDimension d = new FrameDimension(g);
+                    int count = img.GetFrameCount(d);
+                    if (count > n) { n = count; dim = d; }
+                }
+                if (dim == null)
+                    dim = img.FrameDimensionsList.Length > 0
+                        ? new FrameDimension(img.FrameDimensionsList[0]) : new FrameDimension(FrameDimension.Time.Guid);
+
+                // Delais propres a chaque frame (propriete GIF 0x5100, en 1/100 s).
+                byte[] delays = null;
+                try
+                {
+                    PropertyItem pi = img.GetPropertyItem(0x5100);
+                    if (pi != null && pi.Value != null) delays = pi.Value;
+                }
+                catch { }
+
+                for (int i = 0; i < n; i++)
+                {
+                    int ms = 100;
+                    if (delays != null && delays.Length >= (i + 1) * 4)
+                    {
+                        int j = BitConverter.ToUInt16(delays, i * 4);
+                        if (j > 0) ms = j * 10;
+                    }
+                    if (ms < 20) ms = 100;
+                    try { if (n > 1) img.SelectActiveFrame(dim, i); } catch { }
+                    loaded.Add(new FrameData { Bmp = new Bitmap(img), Delay = ms });
+                }
             }
         }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Impossible d'ouvrir ce GIF :\n" + ex.Message, "Editeur GIF",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
         if (loaded.Count == 0) return;
+
+        ClearFrames();
         frames = loaded;
         currentPath = path;
         current = 0;
-        undo.Clear();
         frameList.Items.Clear();
         for (int i = 0; i < frames.Count; i++)
             frameList.Items.Add("Frame " + (i + 1) + "  (" + frames[i].Delay + " ms)");
         frameList.SelectedIndex = 0;
+        Text = "Editeur GIF - " + Path.GetFileName(path) + " - frame par frame";
+        zoom = 1;
+        try { zoomBox.Value = 1; } catch { }
         ResizeCanvas();
         UpdateInfo();
     }
@@ -245,7 +321,8 @@ class EditeurGif : Form
     void Ouvrir_Click(object sender, EventArgs e)
     {
         OpenFileDialog d = new OpenFileDialog();
-        d.Filter = "GIF (*.gif)|*.gif|Tous les fichiers|*.*";
+        d.Filter = "Tous les fichiers|*.*|GIF (*.gif)|*.gif";
+        d.Title = "Ouvrir un GIF (n'importe quel fichier)";
         if (d.ShowDialog() == DialogResult.OK) LoadGif(d.FileName);
     }
 
