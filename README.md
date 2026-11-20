@@ -26,6 +26,16 @@ Un lanceur Windows pour remplacer les curseurs système par un thème **pied / s
 - **Aucune écriture** : ni fichier, ni dossier, ni registre, ni démarrage automatique.
 - **Suppression propre** : supprimez l'EXE, il ne reste rien.
 
+## Éditeur GIF portable (nouveau)
+
+`EditeurGif.exe` permet de modifier un GIF **frame par frame ou plusieurs frames à la fois** :
+
+- Ouvrir un GIF (celui fourni `attente_sans_jambes.gif` est chargé au démarrage), puis choisir dans « Appliquer à » : **Frame courante**, **Frames cochées** ou **Toutes les frames**.
+- Outils : **Crayon**, **Gomme**, **Pipette**, **Remplir** (avec tolérance), **Rectangle**, **Recadrer** (glisser un carré sur l'image).
+- **Transparence par pipette** : prélevez une couleur avec la pipette, puis cliquez « Rendre transparent (pipette) » — utile pour retirer le fond sans peindre de masque.
+- Couleur, taille du pinceau, zoom, **Annuler**, export PNG de toutes les frames, et **enregistrement en GIF animé** (durées préservées).
+- **Aucune écriture** au démarrage : aucun fichier, dossier ou registre. Supprimez l'EXE, il ne reste rien. Icône pied intégrée.
+
 ## Utilisation
 
 1. Double-cliquer sur `EquipeCurseurPied.exe`.
@@ -42,6 +52,7 @@ Un lanceur Windows pour remplacer les curseurs système par un thème **pied / s
 | `EquipeCurseurPied.exe` | Lanceur compilé, prêt à l'emploi (icône intégrée) |
 | `EquipeCurseurPied.ico` | Icône du lanceur (16 → 256 px, pied chair) |
 | `ApercuCurseur.exe` / `ApercuCurseur.cs` | Aperçu portable des 15 curseurs + GIF animé (16 ressources, aucune écriture disque/registre) |
+| `EditeurGif.exe` / `EditeurGif.cs` | Éditeur GIF portable : dessin, pipette, transparence, recadrage, multi-frames (icône intégrée) |
 | `attente_sans_jambes.gif` | GIF source nettoyé : 30 images, pieds seuls, fond transparent |
 | `curseurs/` | Les 13 `.cur` et 2 `.ani` du thème |
 | `curseurs/previews/` | Aperçus PNG de chaque curseur |
@@ -68,6 +79,15 @@ L'aperçu portable s'compile avec les curseurs intégrés en ressources :
   ... (un /resource par curseur) ...
   /resource:attente_sans_jambes.gif,attente_sans_jambes.gif
   ApercuCurseur.cs
+```
+
+L'éditeur se compile de la même façon :
+
+```powershell
+& 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe' `
+  /nologo /target:winexe /win32icon:EquipeCurseurPied.ico /out:EditeurGif.exe `
+  /r:System.Windows.Forms.dll /r:System.Drawing.dll `
+  EditeurGif.cs
 ```
 
 ## Images sources

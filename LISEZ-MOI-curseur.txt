@@ -28,6 +28,17 @@ APERCU PORTABLE : ApercuCurseur.exe
 - aucun fichier ecrit, aucun registre modifie : supprimer l'EXE suffit
 - le curseur "Stylo" (nwpen.cur) est une copie du curseur Texte (ibeam.cur)
 
+EDITEUR GIF PORTABLE : EditeurGif.exe
+- ouvrir un GIF (attente_sans_jambes.gif charge au demarrage) et choisir
+  "Appliquer a" : Frame courante / Frames cochees / Toutes les frames
+- outils : Crayon, Gomme, Pipette, Remplir (tolerance), Rectangle, Recadrer
+- transparence : prelever la couleur du fond avec la Pipette, puis cliquer
+  "Rendre transparent (pipette)" ; regler la tolerance si besoin
+- couleur, taille du pinceau, zoom, Annuler, export PNG des frames,
+  et Enregistrer en GIF anime (durees des frames preservees)
+- aucun fichier ecrit au demarrage, aucun registre : supprimer l'EXE suffit
+- code source : EditeurGif.cs ; icone pied integree
+
 Image source : 5x3-grid-of-15.jpg (grille 5 colonnes x 3 lignes generatee par Grok).
 Le fond damier gris/blanc a ete converti en transparence, puis les 15 cases
 ont ete extraites en conservant leurs couleurs chair d'origine (rose clair),
@@ -67,7 +78,7 @@ meme decoupe, fond et jambes transparents, sans jambes) et s'affiche dans
 ApercuCurseur.exe. Le masque garde tout le pied, y compris les bords clairs :
 separation fond/pied sur R-G > 10 (le fond gris a R-G=6, le pied a R-G=47).
 4 frames sont extraites (0, 10, 20, 29), fond rendu transparent, couleurs chair
-d'origine conservees, hotspot au centre des pieds (77,80).
+d'origine conservees, hotspot au centre des pieds (77,110) (pied descendu de 30 px).
 
 Le curseur TEXTE (ibeam.cur) utilise l'image
 Gemini_Generated_Image_sejxepsejxepsejx.jpg, point choisi par l'utilisateur
