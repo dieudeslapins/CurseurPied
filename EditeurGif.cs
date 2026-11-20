@@ -39,7 +39,7 @@ class CanvasCtrl : Control
 
 class EditeurGif : Form
 {
-    enum Tool { Crayon, Gomme, Pipette, Remplir, Rectangle, Recadrer }
+    enum Tool { Crayon, Gomme, Pipette, Remplir, Rectangle, Recadrer, Selection }
     enum Scope { Courante, Cochees, Toutes }
 
     List<FrameData> frames = new List<FrameData>();
@@ -55,6 +55,11 @@ class EditeurGif : Form
     Point start, last;
     List<Point> stroke = new List<Point>();
     Rectangle cropRect = Rectangle.Empty;
+    Point hoverPt;
+    bool hover;
+    Rectangle selRect = Rectangle.Empty;
+    bool selecting;
+    Point selStart;
 
     CanvasCtrl canvas;
     Panel scroll;
@@ -100,6 +105,7 @@ class EditeurGif : Form
         AddTool(bar, "Remplir", Tool.Remplir);
         AddTool(bar, "Rectangle", Tool.Rectangle);
         AddTool(bar, "Recadrer", Tool.Recadrer);
+        AddTool(bar, "Selection", Tool.Selection);
         bar.Items.Add(new ToolStripSeparator());
         colorButton = new Button();
         colorButton.Text = "Couleur";
@@ -138,21 +144,39 @@ class EditeurGif : Form
 
         Button btTrans = new Button();
         btTrans.Text = "Rendre transparent (pipette)";
-        btTrans.SetBounds(10, top + 542, 220, 32);
+        btTrans.SetBounds(10, top + 538, 220, 30);
         btTrans.Click += Transparent_Click;
         Controls.Add(btTrans);
 
         Button btUndo = new Button();
         btUndo.Text = "Annuler";
-        btUndo.SetBounds(10, top + 580, 105, 30);
+        btUndo.SetBounds(10, top + 572, 105, 28);
         btUndo.Click += Undo_Click;
         Controls.Add(btUndo);
 
         Button btCheck = new Button();
         btCheck.Text = "Tout cocher";
-        btCheck.SetBounds(125, top + 580, 105, 30);
+        btCheck.SetBounds(125, top + 572, 105, 28);
         btCheck.Click += delegate { for (int i = 0; i < frameList.Items.Count; i++) frameList.SetItemChecked(i, true); };
         Controls.Add(btCheck);
+
+        Button btFillSel = new Button();
+        btFillSel.Text = "Remplir sel.";
+        btFillSel.SetBounds(10, top + 604, 105, 28);
+        btFillSel.Click += FillSelection_Click;
+        Controls.Add(btFillSel);
+
+        Button btEraseSel = new Button();
+        btEraseSel.Text = "Gommer sel.";
+        btEraseSel.SetBounds(125, top + 604, 105, 28);
+        btEraseSel.Click += EraseSelection_Click;
+        Controls.Add(btEraseSel);
+
+        Button btClearSel = new Button();
+        btClearSel.Text = "Suppr. selection";
+        btClearSel.SetBounds(10, top + 636, 220, 24);
+        btClearSel.Click += delegate { selRect = Rectangle.Empty; canvas.Invalidate(); UpdateInfo(); };
+        Controls.Add(btClearSel);
 
         scroll = new Panel();
         scroll.SetBounds(240, top, 620, 580);
@@ -163,6 +187,7 @@ class EditeurGif : Form
         canvas.Owner = this;
         HookDrop(scroll);
         HookDrop(canvas);
+        canvas.MouseLeave += delegate { hover = false; canvas.Invalidate(); };
         scroll.Controls.Add(canvas);
 
         info = new Label();
@@ -220,10 +245,13 @@ class EditeurGif : Form
 
     void UpdateInfo()
     {
-        info.Text = (frames.Count > 0 ? "Frame " + (current + 1) + "/" + frames.Count : "Aucune frame")
+        string s = (frames.Count > 0 ? "Frame " + (current + 1) + "/" + frames.Count : "Aucune frame")
             + "  |  outil: " + tool + "  |  couleur: " + brushColor.R + "," + brushColor.G + "," + brushColor.B
+            + "  |  taille: " + brushSize
             + "  |  anime " + (frames.Count > 0 ? frames[current].Delay : 0) + " ms"
             + (currentPath.Length > 0 ? "  |  " + Path.GetFileName(currentPath) : "");
+        if (!selRect.IsEmpty) s += "  |  selection: " + selRect.Width + "x" + selRect.Height;
+        info.Text = s;
     }
 
     void ResizeCanvas()
@@ -299,6 +327,8 @@ class EditeurGif : Form
         frames = loaded;
         currentPath = path;
         current = 0;
+        selRect = Rectangle.Empty;
+        hover = false;
         frameList.Items.Clear();
         for (int i = 0; i < frames.Count; i++)
             frameList.Items.Add("Frame " + (i + 1) + "  (" + frames[i].Delay + " ms)");
@@ -366,6 +396,7 @@ class EditeurGif : Form
             frames[kv.Key].Bmp = kv.Value;
         }
         undo.RemoveAt(undo.Count - 1);
+        selRect = Rectangle.Empty;
         canvas.Invalidate();
         UpdateInfo();
     }
@@ -374,15 +405,48 @@ class EditeurGif : Form
     {
         if (frames.Count == 0 || current >= frames.Count) return;
         g.InterpolationMode = InterpolationMode.NearestNeighbor;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
         g.DrawImage(frames[current].Bmp, 0, 0, canvas.Width, canvas.Height);
-        if (tool == Tool.Recadrer && !cropRect.IsEmpty)
+
+        Rectangle sr = selRect;
+        if (selecting && tool == Tool.Selection) sr = NormRect(selStart, last);
+        if (!sr.IsEmpty)
         {
-            using (Pen p = new Pen(Color.Red, 2)) { p.DashStyle = DashStyle.Dash; g.DrawRectangle(p, cropRect.X * zoom, cropRect.Y * zoom, cropRect.Width * zoom, cropRect.Height * zoom); }
+            using (Pen p = new Pen(Color.FromArgb(230, 0, 160, 255), 1))
+            {
+                p.DashStyle = DashStyle.Dash;
+                g.DrawRectangle(p, sr.X * zoom, sr.Y * zoom, sr.Width * zoom, sr.Height * zoom);
+            }
         }
-        if (drawing && (tool == Tool.Rectangle) && stroke.Count > 0)
+
+        if (drawing && tool == Tool.Recadrer)
         {
-            using (Pen p = new Pen(brushColor, brushSize)) g.DrawRectangle(p, start.X * zoom, start.Y * zoom, (last.X - start.X) * zoom, (last.Y - start.Y) * zoom);
+            Rectangle r = NormRect(start, last);
+            if (r.Width > 0 && r.Height > 0)
+                using (Pen p = new Pen(Color.Red, 2)) { p.DashStyle = DashStyle.Dash; g.DrawRectangle(p, r.X * zoom, r.Y * zoom, r.Width * zoom, r.Height * zoom); }
         }
+        if (drawing && tool == Tool.Rectangle)
+        {
+            Rectangle r = NormRect(start, last);
+            using (Pen p = new Pen(brushColor, Math.Max(1, brushSize * zoom)))
+                g.DrawRectangle(p, r.X * zoom, r.Y * zoom, r.Width * zoom, r.Height * zoom);
+        }
+
+        if (hover && !drawing && (tool == Tool.Crayon || tool == Tool.Gomme))
+        {
+            float d = brushSize * zoom;
+            float x = hoverPt.X * zoom + zoom / 2f - d / 2f;
+            float y = hoverPt.Y * zoom + zoom / 2f - d / 2f;
+            Color c = tool == Tool.Gomme ? Color.FromArgb(220, 255, 80, 80) : Color.FromArgb(220, 40, 40, 40);
+            using (Pen p = new Pen(c, 1)) g.DrawEllipse(p, x, y, d, d);
+        }
+    }
+
+    static Rectangle NormRect(Point a, Point b)
+    {
+        int x = Math.Min(a.X, b.X), y = Math.Min(a.Y, b.Y);
+        int w = Math.Abs(a.X - b.X), h = Math.Abs(a.Y - b.Y);
+        return new Rectangle(x, y, w, h);
     }
 
     Point Pt(MouseEventArgs e)
@@ -398,6 +462,7 @@ class EditeurGif : Form
     {
         if (frames.Count == 0) return;
         Point p = Pt(e);
+        hoverPt = p; hover = true;
         if (tool == Tool.Pipette)
         {
             brushColor = frames[current].Bmp.GetPixel(p.X, p.Y);
@@ -408,10 +473,20 @@ class EditeurGif : Form
         {
             List<int> tg = Targets();
             PushUndo(tg);
-            foreach (int i in tg) Flood(frames[i].Bmp, p.X, p.Y, brushColor, tolerance);
+            foreach (int i in tg) Flood(frames[i].Bmp, p.X, p.Y, brushColor, tolerance, selRect);
             canvas.Invalidate(); return;
         }
+        if (tool == Tool.Selection)
+        {
+            drawing = true;
+            selecting = true;
+            selStart = p; last = p;
+            selRect = Rectangle.Empty;
+            canvas.Invalidate();
+            return;
+        }
         drawing = true;
+        selecting = false;
         start = p; last = p;
         stroke = new List<Point>(); stroke.Add(p);
         cropRect = Rectangle.Empty;
@@ -419,10 +494,12 @@ class EditeurGif : Form
 
     public void HandleMouseMove(MouseEventArgs e)
     {
-        if (!drawing) return;
-        Point p = Pt(e);
-        last = p;
-        if (tool == Tool.Crayon || tool == Tool.Gomme) stroke.Add(p);
+        if (frames.Count == 0) return;
+        hoverPt = Pt(e);
+        hover = true;
+        if (!drawing) { canvas.Invalidate(); return; }
+        last = hoverPt;
+        if (tool == Tool.Crayon || tool == Tool.Gomme) stroke.Add(hoverPt);
         canvas.Invalidate();
     }
 
@@ -431,41 +508,68 @@ class EditeurGif : Form
         if (!drawing) return;
         drawing = false;
         Point p = Pt(e);
+        last = p;
+
+        if (tool == Tool.Selection)
+        {
+            selecting = false;
+            Rectangle r = NormRect(selStart, p);
+            if (frames.Count > 0)
+            {
+                Bitmap b = frames[current].Bmp;
+                r.Intersect(new Rectangle(0, 0, b.Width, b.Height));
+            }
+            selRect = (r.Width >= 2 && r.Height >= 2) ? r : Rectangle.Empty;
+            canvas.Invalidate(); UpdateInfo();
+            return;
+        }
+
         List<int> tg = Targets();
         PushUndo(tg);
+
         if (tool == Tool.Recadrer)
         {
-            Rectangle r = Rectangle.FromLTRB(Math.Min(start.X, p.X), Math.Min(start.Y, p.Y), Math.Max(start.X, p.X), Math.Max(start.Y, p.Y));
+            Rectangle r = NormRect(start, p);
             if (r.Width < 4 || r.Height < 4) { undo.RemoveAt(undo.Count - 1); canvas.Invalidate(); return; }
             foreach (int i in tg)
             {
                 Bitmap b = frames[i].Bmp;
-                if (r.X + r.Width > b.Width || r.Y + r.Height > b.Height) continue;
-                Bitmap c = b.Clone(r, b.PixelFormat);
+                Rectangle rr = r;
+                rr.Intersect(new Rectangle(0, 0, b.Width, b.Height));
+                if (rr.Width < 2 || rr.Height < 2) continue;
+                Bitmap c = b.Clone(rr, b.PixelFormat);
                 b.Dispose(); frames[i].Bmp = c;
             }
+            selRect = Rectangle.Empty;
             cropRect = Rectangle.Empty;
             ResizeCanvas(); UpdateInfo(); return;
         }
+
         foreach (int i in tg)
         {
             Bitmap b = frames[i].Bmp;
             using (Graphics g = Graphics.FromImage(b))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
+                if (!selRect.IsEmpty && selRect.Width > 0 && selRect.Height > 0)
+                {
+                    Rectangle clip = selRect;
+                    clip.Intersect(new Rectangle(0, 0, b.Width, b.Height));
+                    if (clip.Width > 0 && clip.Height > 0) g.SetClip(clip);
+                }
                 if (tool == Tool.Gomme)
                 {
-                    g.CompositingMode = CompositingMode.SourceCopy;
-                    using (Pen pen = new Pen(Color.FromArgb(0, 0, 0, 0), brushSize)) { pen.StartCap = LineCap.Round; pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round; DrawStroke(g, pen); }
+                    DrawBrushStroke(g, Color.Transparent, true);
                 }
                 else if (tool == Tool.Crayon)
                 {
-                    using (Pen pen = new Pen(brushColor, brushSize)) { pen.StartCap = LineCap.Round; pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round; DrawStroke(g, pen); }
+                    DrawBrushStroke(g, brushColor, false);
                 }
                 else if (tool == Tool.Rectangle)
                 {
-                    using (Pen pen = new Pen(brushColor, brushSize))
-                        g.DrawRectangle(pen, Math.Min(start.X, p.X), Math.Min(start.Y, p.Y), Math.Abs(p.X - start.X), Math.Abs(p.Y - start.Y));
+                    Rectangle r = NormRect(start, p);
+                    using (Pen pen = new Pen(brushColor, Math.Max(1, brushSize)))
+                        g.DrawRectangle(pen, r.X, r.Y, r.Width, r.Height);
                 }
             }
         }
@@ -474,15 +578,47 @@ class EditeurGif : Form
         UpdateInfo();
     }
 
-    void DrawStroke(Graphics g, Pen pen)
+    void DrawBrushStroke(Graphics g, Color color, bool erase)
     {
-        if (stroke.Count == 1) { g.DrawRectangle(pen, stroke[0].X, stroke[0].Y, 1, 1); return; }
-        for (int i = 1; i < stroke.Count; i++) g.DrawLine(pen, stroke[i - 1], stroke[i]);
+        if (stroke.Count == 0) return;
+        if (erase)
+        {
+            g.CompositingMode = CompositingMode.SourceCopy;
+            using (SolidBrush b = new SolidBrush(Color.FromArgb(0, 0, 0, 0)))
+            using (Pen pen = new Pen(Color.FromArgb(0, 0, 0, 0), brushSize))
+            {
+                pen.StartCap = LineCap.Round; pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round;
+                if (stroke.Count == 1)
+                    g.FillEllipse(b, stroke[0].X - brushSize / 2f, stroke[0].Y - brushSize / 2f, brushSize, brushSize);
+                else
+                {
+                    for (int i = 1; i < stroke.Count; i++) g.DrawLine(pen, stroke[i - 1], stroke[i]);
+                }
+            }
+            g.CompositingMode = CompositingMode.SourceOver;
+        }
+        else
+        {
+            using (SolidBrush b = new SolidBrush(color))
+            using (Pen pen = new Pen(color, brushSize))
+            {
+                pen.StartCap = LineCap.Round; pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round;
+                if (stroke.Count == 1)
+                    g.FillEllipse(b, stroke[0].X - brushSize / 2f, stroke[0].Y - brushSize / 2f, brushSize, brushSize);
+                else
+                {
+                    for (int i = 1; i < stroke.Count; i++) g.DrawLine(pen, stroke[i - 1], stroke[i]);
+                }
+            }
+        }
     }
 
-    void Flood(Bitmap b, int x0, int y0, Color newColor, int tol)
+    void Flood(Bitmap b, int x0, int y0, Color newColor, int tol, Rectangle clip)
     {
         int w = b.Width, h = b.Height;
+        bool hasClip = !clip.IsEmpty;
+        Rectangle cr = hasClip ? Rectangle.Intersect(clip, new Rectangle(0, 0, w, h)) : new Rectangle(0, 0, w, h);
+        if (x0 < cr.Left || y0 < cr.Top || x0 >= cr.Right || y0 >= cr.Bottom) return;
         Color target = b.GetPixel(x0, y0);
         bool[,] seen = new bool[w, h];
         Stack<Point> q = new Stack<Point>();
@@ -490,7 +626,7 @@ class EditeurGif : Form
         while (q.Count > 0)
         {
             Point p = q.Pop();
-            if (p.X < 0 || p.Y < 0 || p.X >= w || p.Y >= h || seen[p.X, p.Y]) continue;
+            if (p.X < cr.Left || p.Y < cr.Top || p.X >= cr.Right || p.Y >= cr.Bottom || seen[p.X, p.Y]) continue;
             seen[p.X, p.Y] = true;
             Color c = b.GetPixel(p.X, p.Y);
             int d = Math.Abs(c.R - target.R) + Math.Abs(c.G - target.G) + Math.Abs(c.B - target.B) + Math.Abs(c.A - target.A);
@@ -509,13 +645,54 @@ class EditeurGif : Form
         foreach (int i in tg)
         {
             Bitmap b = frames[i].Bmp;
-            for (int y = 0; y < b.Height; y++)
-                for (int x = 0; x < b.Width; x++)
+            Rectangle area = !selRect.IsEmpty ? Rectangle.Intersect(selRect, new Rectangle(0, 0, b.Width, b.Height))
+                                              : new Rectangle(0, 0, b.Width, b.Height);
+            for (int y = area.Top; y < area.Bottom; y++)
+                for (int x = area.Left; x < area.Right; x++)
                 {
                     Color c = b.GetPixel(x, y);
                     int d = Math.Abs(c.R - brushColor.R) + Math.Abs(c.G - brushColor.G) + Math.Abs(c.B - brushColor.B);
                     if (d <= tolerance) b.SetPixel(x, y, Color.FromArgb(0, c.R, c.G, c.B));
                 }
+        }
+        canvas.Invalidate();
+        UpdateInfo();
+    }
+
+    void FillSelection_Click(object sender, EventArgs e)
+    {
+        if (frames.Count == 0 || selRect.IsEmpty) return;
+        List<int> tg = Targets();
+        PushUndo(tg);
+        foreach (int i in tg)
+        {
+            Bitmap b = frames[i].Bmp;
+            Rectangle r = Rectangle.Intersect(selRect, new Rectangle(0, 0, b.Width, b.Height));
+            if (r.Width <= 0 || r.Height <= 0) continue;
+            using (Graphics g = Graphics.FromImage(b))
+            using (SolidBrush br = new SolidBrush(brushColor))
+                g.FillRectangle(br, r);
+        }
+        canvas.Invalidate();
+        UpdateInfo();
+    }
+
+    void EraseSelection_Click(object sender, EventArgs e)
+    {
+        if (frames.Count == 0 || selRect.IsEmpty) return;
+        List<int> tg = Targets();
+        PushUndo(tg);
+        foreach (int i in tg)
+        {
+            Bitmap b = frames[i].Bmp;
+            Rectangle r = Rectangle.Intersect(selRect, new Rectangle(0, 0, b.Width, b.Height));
+            if (r.Width <= 0 || r.Height <= 0) continue;
+            using (Graphics g = Graphics.FromImage(b))
+            {
+                g.CompositingMode = CompositingMode.SourceCopy;
+                using (SolidBrush br = new SolidBrush(Color.FromArgb(0, 0, 0, 0)))
+                    g.FillRectangle(br, r);
+            }
         }
         canvas.Invalidate();
         UpdateInfo();
