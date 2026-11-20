@@ -365,16 +365,26 @@ class EditeurGif : Form
 
     List<int> Targets()
     {
-        List<int> res = new List<int>();
-        if (scope == Scope.Courante) res.Add(current);
-        else if (scope == Scope.Toutes) { for (int i = 0; i < frames.Count; i++) res.Add(i); }
-        else
+        List<int> coches = new List<int>();
+        for (int i = 0; i < frames.Count && i < frameList.Items.Count; i++)
+            if (frameList.GetItemChecked(i)) coches.Add(i);
+
+        if (scope == Scope.Toutes)
         {
-            for (int i = 0; i < frames.Count && i < frameList.Items.Count; i++)
-                if (frameList.GetItemChecked(i)) res.Add(i);
-            if (res.Count == 0) res.Add(current);
+            List<int> all = new List<int>();
+            for (int i = 0; i < frames.Count; i++) all.Add(i);
+            return all;
         }
-        return res;
+        if (scope == Scope.Cochees)
+        {
+            if (coches.Count == 0) { coches.Add(current); }
+            return coches;
+        }
+        // Frame courante : si des frames sont cochees, les cibler (selection explicite)
+        if (coches.Count > 0) return coches;
+        List<int> cur = new List<int>();
+        cur.Add(current);
+        return cur;
     }
 
     void PushUndo(List<int> idx)
